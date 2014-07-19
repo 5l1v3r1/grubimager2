@@ -1,0 +1,5 @@
+name: grubimager2
+dependencies:
+  path: any
+  query_string: any
+
