@@ -16,7 +16,7 @@ void main(List<String> args) {
   };
 
   HttpServer.bind(InternetAddress.ANY_IP_V4, port).then(bindCb)
-  .catchError(errorCb);
+    .catchError(errorCb);
 }
 
 void requestHandler(HttpRequest request) {

@@ -15,12 +15,12 @@ class GrubFS {
     var grubPath = pathLib.join(path, 'boot/grub');
     
     new Directory(grubPath).create(recursive: true)
-    .then((Directory d) {
-      var menuPath = pathLib.join(grubPath, 'grub.cfg');
-      var menuContent = 'menuentry "${menuName}" {\n' +
-          '\tmultiboot /boot/learnos.bin\n}';
-      return new File(menuPath).writeAsString(menuContent);
-    }).then((File f) => result.complete());
+      .then((Directory d) {
+        var menuPath = pathLib.join(grubPath, 'grub.cfg');
+        var menuContent = 'menuentry "${menuName}" {\n' +
+            '\tmultiboot /boot/learnos.bin\n}';
+        return new File(menuPath).writeAsString(menuContent);
+      }).then((File f) => result.complete());
 
     return result.future;
   }
