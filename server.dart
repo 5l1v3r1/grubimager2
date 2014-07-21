@@ -1,5 +1,5 @@
 import 'dart:io';
-import 'package:query_string/query_string.dart';
+import 'upload-handler.dart';
 
 void main(List<String> args) {
   if (args.length != 1) {
@@ -20,6 +20,12 @@ void main(List<String> args) {
 }
 
 void requestHandler(HttpRequest request) {
+  if (request.method == 'POST' &&
+      request.headers.contentType.mimeType == 'multipart/form-data') {
+    handleFileUpload(request);
+    return;
+  }
+
   var uri = request.uri.toString();
   if (uri == '/script.js') {
     return serveFile('build/script.js', 'text/javascript', request);
@@ -47,6 +53,19 @@ void serveFile(String path, String type, HttpRequest request) {
     response.headers.contentType = 'text/plain';
     response.statusCode = 500;
     response..write('Error reading file: $error')..close();
+  });
+}
+
+void handleFileUpload(HttpRequest request) {
+  var handler = new UploadHandler(request);
+  handler.createGrub().then((_) => handler.handleFields()).then((_) {
+    print("created GRUB temp and handled fields");
+  }).catchError((e) {
+    handler.deleteGrub();
+    var response = request.response;
+    response.headers.contentType = 'text/plain';
+    response.statusCode = 400;
+    response..write('Error processing request: ' + e.toString())..close();
   });
 }
 
