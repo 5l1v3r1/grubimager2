@@ -1,13 +1,15 @@
-import 'package:http_server/http_server.dart';
-import 'package:mime/mime.dart';
+import 'package:multidart/multidart.dart';
 import 'grubfs.dart';
 import 'dart:async';
+import 'dart:io';
 
 class UploadHandler {
-  GrubFS grub;
   final HttpRequest request;
+  final Map<String, String> fields;
+  GrubFS grub;
 
-  UploadHandler(this.request) : grub = null {
+  UploadHandler(this.request) : fields = {} {
+    grub = null;
   }
 
   Future createGrub() {
@@ -21,23 +23,49 @@ class UploadHandler {
     var completer = new Completer();
 
     String boundary = request.headers.contentType.parameters['boundary'];
-    request.transform(new MimeMultipartTransformer(boundary))
-      .map(HttpMultipartFormData.parse)
-      .listen((HttpMultipartFormData formData) {
-        print('field name is ${formData.contentDisposition.toString()}');
-        print("got form data " + formData.toString());
-        formData.listen((x) => print('hey ${x.length}'));
-      });
-
+    var transformer = new PartTransformer(boundary);
+    var sub;
+    sub = request.transform(transformer).listen((Part part) {
+      String name = part.contentDisposition.parameters['name'];
+      if (!(name is String)) {
+        sub.cancel();
+        part.cancel();
+        completer.completeError('missing name argument');
+      } else if (name == 'file-name' || name == 'menu-name') {
+        StringBuffer buffer = new StringBuffer();
+        part.stream.listen((List<int> x) {
+          buffer.write(new String.fromCharCodes(x));
+        }, onDone: () {
+          fields[name] = buffer.toString();
+        });
+      } else if (name == 'image') {
+        // TODO: prevent HUGE uploads here!
+        IOSink writable = new File(grub.kernelPath).openWrite();
+        part.stream.pipe(writable).catchError((e) {
+          completer.completeError(e);
+          sub.cancel();
+          part.cancel();
+        });
+      } else {
+        sub.cancel();
+        part.cancel();
+        completer.completeError('invalid field name: ' + name);
+      }
+    }, onError: (e) {
+      completer.completeError(e);
+    }, onDone: () {
+      if (completer.isCompleted) return;
+      completer.complete();
+    });
     return completer.future;
   }
 
   Future deleteGrub() {
     if (grub == null) {
-      return new Completer()..complete()..future;
+      return new Future(() => null);
+    } else {
+      return grub.delete();
     }
-    return grub.delete();
   }
 
 }
-

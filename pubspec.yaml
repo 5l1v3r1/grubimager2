@@ -1,5 +1,8 @@
 name: grubimager2
+version: 0.0.1
+author: Alex Nichol
+description: A simple server backend for `grub-mkrescue`
+homepage: http://github.com/unixpickle/grubimager2
 dependencies:
+  multidart: 0.0.3
   path: any
-  http_server: any
-
